@@ -66,10 +66,9 @@ class ObfuscationOrchestrator(
         val actualPackage = extractPackage(source)
         log("  Package: $actualPackage\n")
 
-        val seed = actualPackage.hashCode().toLong()  // Seed موحد
+        val seed = actualPackage.hashCode().toLong()
         log("  Using seed: $seed for consistent renaming\n")
 
-        // إصلاح بعض المشاكل قبل البدء
         val repaired = repairChainedDispatcherCalls(source)
         if (repaired != source) {
             source = repaired
@@ -120,15 +119,15 @@ class ObfuscationOrchestrator(
             log("  ✓ String Encryption completed in ${time}ms | Encrypted: $stringsEncrypted\n")
         }
 
-        // 2. Control Flow Flattening
+        // 2. Control Flow Flattening V2 (مع النسخة الجديدة بـ Switch و IF محسّنة)
         if (config.enableControlFlow) {
-            log("  Stage 2 — Control Flow Flattening")
+            log("  Stage 2 — Control Flow Flattening V2 (Enhanced)")
             val time = measureTimeMillis {
-                val flattener = ControlFlowFlattener(dict)
+                val flattener = ControlFlowFlattenerV2(dict)  // ✨ النسخة الجديدة
                 source = flattenAllMethods(source, flattener)
                 methodsFlattened = countFlattened(source)
             }
-            log("  ✓ Control Flow Flattening completed in ${time}ms | Flattened: $methodsFlattened\n")
+            log("  ✓ Control Flow Flattening V2 completed in ${time}ms | Flattened: $methodsFlattened\n")
         }
 
         // 3. API Dispatch
@@ -149,20 +148,19 @@ class ObfuscationOrchestrator(
             log("  ✓ API Dispatch completed in ${time}ms | Wrapped: $apiCallsWrapped\n")
         }
 
-// احذف أو ضع تعليقاً على هذا الجزء بالكامل داخل ObfuscationOrchestrator.kt
-/*
-if (config.enableFragmentation) {
-    log("  Stage 4 — Runnable Fragmentation")
-    val time = measureTimeMillis {
-        val tempInput = File(outputDir, "_frag_temp.java")
-        FileUtils.writeStringToFile(tempInput, source, StandardCharsets.UTF_8)
-        source = FragmentationEngine(log).process(tempInput)
-        tempInput.delete()
-    }
-    log("  ✓ Fragmentation completed in ${time}ms\n")
-}
-*/
-
+        // 4. Fragmentation (معطّل حالياً - اختياري)
+        /*
+        if (config.enableFragmentation) {
+            log("  Stage 4 — Runnable Fragmentation")
+            val time = measureTimeMillis {
+                val tempInput = File(outputDir, "_frag_temp.java")
+                FileUtils.writeStringToFile(tempInput, source, StandardCharsets.UTF_8)
+                source = FragmentationEngine(log).process(tempInput)
+                tempInput.delete()
+            }
+            log("  ✓ Fragmentation completed in ${time}ms\n")
+        }
+        */
 
         // 5. Source Renamer (آخراً)
         if (config.enableRename) {
@@ -216,7 +214,7 @@ if (config.enableFragmentation) {
             ?.takeIf { it.isNotBlank() }
             ?: "com.my.newproject7"
 
-    private fun flattenAllMethods(source: String, flattener: ControlFlowFlattener): String {
+    private fun flattenAllMethods(source: String, flattener: ControlFlowFlattenerV2): String {
         return try {
             val cu = com.github.javaparser.StaticJavaParser.parse(source)
             val cls = cu.findFirst(com.github.javaparser.ast.body.ClassOrInterfaceDeclaration::class.java)
